@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Top-Down Game</title>
+  <style>
+    #game-container {
+      width: 400px;
+      height: 400px;
+      border: 1px solid black;
+      position: relative;
+    }
+    #player {
+      width: 20px;
+      height: 20px;
+      background-color: blue;
+      position: absolute;
+      transform-origin: center;
+    }
+    #gun {
+      width: 2px;
+      height: 20px;
+      background-color: black;
+      position: absolute;
+    }
+    #enemy {
+      width: 20px;
+      height: 20px;
+      background-color: red;
+      position: absolute;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="player">
+      <div id="gun"></div>
+    </div>
+    <div id="enemy"></div>
+  </div>
+
+  <script>
+    // Game variables
+    var player = document.getElementById('player');
+    var gun = document.getElementById('gun');
+    var enemy = document.getElementById('enemy');
+    var container = document.getElementById('game-container');
+    var playerX = 190;
+    var playerY = 190;
+    var enemyX = getRandomPosition(container.offsetWidth - enemy.offsetWidth);
+    var enemyY = getRandomPosition(container.offsetHeight - enemy.offsetHeight);
+    var containerWidth = container.offsetWidth;
+    var containerHeight = container.offsetHeight;
+    var isPlayerAlive = true;
+    var enemyIntervalId;
+
+    // Function to update player position
+    function updatePlayerPosition() {
+      player.style.left = playerX + 'px';
+      player.style.top = playerY + 'px';
+    }
+
+    // Function to update gun rotation
+    function updateGunRotation(event) {
+      var mouseX = event.clientX - container.offsetLeft;
+      var mouseY = event.clientY - container.offsetTop;
+
+      var angle = Math.atan2(mouseY - playerY, mouseX - playerX);
+      angle = angle * (180 / Math.PI); // Convert angle from radians to degrees
+
+      gun.style.transform = 'rotate(' + angle + 'deg)';
+    }
+
+    // Function to handle key presses
+    function handleKeyPress(event) {
+      if (!isPlayerAlive) {
+        return; // Stop controls if the player is dead
+      }
+
+      var key = event.keyCode;
+      var stepSize = 10;
+
+      if (key === 65) { // A key
+        playerX -= stepSize;
+        if (playerX < 0) {
+          playerX = 0;
+        }
+      } else if (key === 68) { // D key
+        playerX += stepSize;
+        if (playerX > containerWidth - player.offsetWidth) {
+          playerX = containerWidth - player.offsetWidth;
+        }
+      } else if (key === 87) { // W key
+        playerY -= stepSize;
+        if (playerY < 0) {
+          playerY = 0;
+        }
+      } else if (key === 83) { // S key
+        playerY += stepSize;
+        if (playerY > containerHeight - player.offsetHeight) {
+          playerY = containerHeight - player.offsetHeight;
+        }
+      } else if (key === 32) { // Spacebar key
+        // Shoot the gun
+        shootGun();
+      }
+
+      updatePlayerPosition();
+    }
+
+    // Function to shoot the gun
+    function shootGun() {
+      // Check if the enemy is within range
+      var dx = enemyX - playerX;
+      var dy = enemyY - playerY;
+      var distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance <= 50) { // Set the shooting range as 50 pixels
+        // Kill the enemy
+        enemy.style.display = 'none'; // Hide the enemy
+        setTimeout(respawnEnemy, 1000); // Respawn the enemy after 1 second
+      }
+    }
+
+    // Function to respawn the enemy in a random position
+    function respawnEnemy() {
+      // Generate random positions within the game container
+      enemyX = getRandomPosition(container.offsetWidth - enemy.offsetWidth);
+      enemyY = getRandomPosition(container.offsetHeight - enemy.offsetHeight);
+
+      enemy.style.display = 'block'; // Show the enemy
+      updateEnemyPosition();
+    }
+
+    // Function to generate a random position within a given range
+    function getRandomPosition(range) {
+      return Math.floor(Math.random() * range);
+    }
+
+    // Function to check collision between player and enemy
+    function isColliding() {
+      var playerRect = player.getBoundingClientRect();
+      var enemyRect = enemy.getBoundingClientRect();
+
+      return (
+        playerRect.left < enemyRect.right &&
+        playerRect.right > enemyRect.left &&
+        playerRect.top < enemyRect.bottom &&
+        playerRect.bottom > enemyRect.top
+      );
+    }
+
+    // Function to move the enemy
+    function moveEnemy() {
+      if (!isPlayerAlive) {
+        return; // Stop moving enemy if the player is dead
+      }
+
+      var stepSize = 5;
+
+      var playerCenterX = playerX + player.offsetWidth / 2;
+      var playerCenterY = playerY + player.offsetHeight / 2;
+      var enemyCenterX = enemyX + enemy.offsetWidth / 2;
+      var enemyCenterY = enemyY + enemy.offsetHeight / 2;
+
+      var dx = playerCenterX - enemyCenterX;
+      var dy = playerCenterY - enemyCenterY;
+      var distance = Math.sqrt(dx * dx + dy * dy);
+
+      var directionX = dx / distance;
+      var directionY = dy / distance;
+
+      enemyX += directionX * stepSize;
+      enemyY += directionY * stepSize;
+
+      updateEnemyPosition();
+
+      // Check for collision between player and enemy
+      if (isColliding()) {
+        stopGame();
+        respawnEnemy();
+      }
+    }
+
+    // Function to update enemy position
+    function updateEnemyPosition() {
+      enemy.style.left = enemyX + 'px';
+      enemy.style.top = enemyY + 'px';
+    }
+
+    // Function to start the game
+    function startGame() {
+      if (enemyIntervalId) {
+        clearInterval(enemyIntervalId); // Clear previous interval
+      }
+      isPlayerAlive = true;
+      enemyIntervalId = setInterval(moveEnemy, 100);
+      moveEnemy(); // Move the enemy immediately
+    }
+
+    // Function to stop the game
+    function stopGame() {
+      isPlayerAlive = false;
+    }
+
+    // Event listeners
+    window.addEventListener('keydown', handleKeyPress);
+    container.addEventListener('mousemove', updateGunRotation);
+
+    // Initial player and enemy positions
+    updatePlayerPosition();
+    updateEnemyPosition();
+  </script>
+</body>
+</html>
